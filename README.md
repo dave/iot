@@ -37,6 +37,24 @@ IPs for my project:
 ...
 ```
 
+* Install Go:
+```
+rm -rf /usr/local/go
+GOVERSION="1.18"
+wget "https://golang.org/dl/go${GOVERSION}.linux-arm64.tar.gz" -4
+sudo tar -C /usr/local -xvf "go${GOVERSION}.linux-arm64.tar.gz"
+```
+
+* Add Go bin to the path:
+
+```
+cat >> ~/.bashrc << 'EOF'
+export GOPATH=$HOME/go
+export PATH=/usr/local/go/bin:$PATH:$GOPATH/bin
+EOF
+
+source ~/.bashrc
+```
 
 
 
