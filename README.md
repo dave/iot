@@ -31,9 +31,9 @@ network={
 IPs for my project:
 
 ```
-192.168.77.10 - Laptop
-192.168.77.11 - Raspberry Pi Zero (A)
-192.168.77.12 - Raspberry Pi Zero (B)
+192.168.77.10       - Laptop
+192.168.77.11       - Raspberry Pi Zero (A)
+192.168.77.12       - Raspberry Pi Zero (B)
 ...
 ```
 
@@ -55,8 +55,3 @@ EOF
 
 source ~/.bashrc
 ```
-
-
-
-
-
