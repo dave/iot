@@ -48,5 +48,5 @@
 26) *Pi* `sudo sysctl net.ipv4.ip_forward=1`
 27) *Pi* `sudo iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE`
 28) *Pi* `sudo iptables -A FORWARD -i wlan0 -o uap0 -m state --state RELATED,ESTABLISHED -j ACCEPT`
-29) *Pi* `sudo iptables -A FORWARD -i uap0 -o wlan0 -j ACCEPT`
+29) *Pi* `sudo iptables -A FORWARD -i uap0 -o wlan0 -j ACCEPT` (*pi*)
 30) Internet should now be working on Mac
