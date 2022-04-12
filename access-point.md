@@ -20,11 +20,12 @@ the Pi. It's all configured in a headless SSH session. We will approximately fol
 the `disable wpa_supplicant` step until the end, because it will disable wifi and lock you out
 of the Pi):
 
-Things you might need on your Mac (optional):
+## Things you might need on your Mac (optional)
 * Jq tool for displaying json on command line: `brew install jq`
 * Nmap network scanner `brew install nmap`
 * Make a shortcut to the airport tool so it's easier to use: `sudo ln -s /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport /usr/local/bin/airport`
 
+## Instructions
 1) Flash Raspberry Pi OS Lite 32-bit version using [Pi Imager](https://www.raspberrypi.com/software/) to SD card. I've tested with the 2022-04-04 OS version.
 2) Remember to set hostname, ssh access and locale settings in advanced before you flash.
 3) *Mac* Try to ssh in with the hostname configured in the Imager settings: `ssh pi@XXX.local`
