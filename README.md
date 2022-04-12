@@ -32,20 +32,25 @@
 ```
 
 12) *Pi* Start Docker container: `docker run --restart=unless-stopped -d --privileged --net host -v $(pwd)/wificfg.json:/cfg/wificfg.json cjimti/iotwifi`
-13) Enable forwarding:
-14) *Pi* `sudo sysctl net.ipv4.ip_forward=1`
-15) *Pi* `sudo iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE`
-16) *Pi* `sudo iptables -A FORWARD -i wlan0 -o uap0 -m state --state RELATED,ESTABLISHED -j ACCEPT`
-17) *Pi* `sudo iptables -A FORWARD -i uap0 -o wlan0 -j ACCEPT`
-18) Now we can return to the `disable wpa_supplicant` step:
-19) *Pi* `sudo systemctl mask wpa_supplicant.service`
-20) *Pi* `sudo mv /sbin/wpa_supplicant /sbin/no_wpa_supplicant`
-21) *Pi* `sudo pkill wpa_supplicant`
-22) Reboot Pi
-23) *Mac* Check you have the wifi network: `/System/Library/PrivateFrameworks/Apple80211.framework/Versions/A/Resources/airport scan | grep SSID_IN_HERE`
-24) *Mac* Connect to the internal wifi newtork (you won't have internet).
-25) Now you can use the internal address of the Pi to configure it's external wifi:
-26) *Mac* Get Pi to return status: `curl -w "\n" http://192.168.27.1:8080/status`
-27) *Mac* Get Pi to scan wifi networks: `curl -w "\n" http://192.168.27.1:8080/scan`
-28) *Mac* Get Pi to connect to a network: `curl -w "\n" -d '{"ssid":"SSID", "psk":"PASS"}' -H "Content-Type: application/json" -X POST http://192.168.27.1:8080/connect`
-30) Internet should now be working on Mac
+13) Pi will freeze and stop pinging for a few seconds here, but give it time and the SSH connection will start responding again.
+14) Enable forwarding:
+15) *Pi* `sudo sysctl net.ipv4.ip_forward=1`
+16) *Pi* `sudo iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE`
+17) *Pi* `sudo iptables -A FORWARD -i wlan0 -o uap0 -m state --state RELATED,ESTABLISHED -j ACCEPT`
+18) *Pi* `sudo iptables -A FORWARD -i uap0 -o wlan0 -j ACCEPT`
+19) *Pi* For `iptables` changes to persist across reboots, we need to install and configure this: `sudo apt install iptables-persistent`
+20) Now we can return to the `disable wpa_supplicant` step:
+21) *Pi* `sudo systemctl mask wpa_supplicant.service`
+22) *Pi* `sudo mv /sbin/wpa_supplicant /sbin/no_wpa_supplicant`
+23) *Pi* `sudo pkill wpa_supplicant`
+24) SSH to Pi will freeze because the Pi's wifi will be disconnected.
+25) Reboot Pi
+26) *Mac* Make a shortcut to the airport tool so it's easier to use: `sudo ln -s /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport /usr/local/bin/airport`
+27) *Mac* Check you have the wifi network: `airport scan | grep SSID_IN_HERE`
+28) *Mac* Connect to the internal wifi newtork (you won't have internet).
+29) Now you can use the internal address of the Pi to configure it's external wifi:
+30) *Mac* Install `jq` tool for displaying json on command line if you don't have it: `brew install jq`
+31) *Mac* Get Pi to return status: `curl -w "\n" http://192.168.27.1:8080/status | jq`
+32) *Mac* Get Pi to scan wifi networks: `curl -w "\n" http://192.168.27.1:8080/scan | jq`
+33) *Mac* Get Pi to connect to a network: `curl -w "\n" -d '{"ssid":"SSID", "psk":"PASS"}' -H "Content-Type: application/json" -X POST http://192.168.27.1:8080/connect | jq`
+34) Internet should now be working on Mac
