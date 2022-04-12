@@ -26,16 +26,17 @@ of the Pi):
 * Make a shortcut to the airport tool so it's easier to use: `sudo ln -s /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport /usr/local/bin/airport`
 
 ## Instructions
-1) Flash Raspberry Pi OS Lite 32-bit version using [Pi Imager](https://www.raspberrypi.com/software/) to SD card. I've tested with the 2022-04-04 OS version.
-2) Remember to set hostname, ssh access and locale settings in advanced before you flash.
-3) *Mac* Try to ssh in with the hostname configured in the Imager settings: `ssh pi@XXX.local`
-4) *Mac* If that fails, scan local network for the Pi (here XXX is the local range that your Mac is on): `sudo nmap -sn 192.168.XXX.0/24 | grep -B 2 Raspberry`, then ssh to Pi on local address: `ssh pi@192.168.XXX.XXX`
-5) *Pi* Install Docker: `curl -sSL https://get.docker.com | sh`
-6) *Pi* Update permissions: `sudo usermod -aG docker pi`
-7) *Pi* Reboot: `sudo reboot`
-8) SSH will disconnect, so reconnect once it's rebooted.
-9) *Pi* Pull the Docker image: `docker pull cjimti/iotwifi`
-10) *Pi* Create `wificfg.json` config file and edit credentials:
+1) We'll be using the [Pi Imager](https://www.raspberrypi.com/software/) tool to write the Pi OS to an SD card.
+2) Remember to set hostname, ssh access and locale settings in the `Advanced options` panel before you flash.
+3) Flash Raspberry Pi OS Lite 32-bit version. I've tested with the 2022-04-04 OS version.
+4) *Mac* Try to ssh in with the hostname configured in the Imager settings: `ssh pi@XXX.local`
+5) *Mac* If that fails, scan local network for the Pi (here XXX is the local range that your Mac is on): `sudo nmap -sn 192.168.XXX.0/24 | grep -B 2 Raspberry`, then ssh to Pi on local address: `ssh pi@192.168.XXX.XXX`
+6) *Pi* Install Docker: `curl -sSL https://get.docker.com | sh`
+7) *Pi* Update permissions: `sudo usermod -aG docker pi`
+8) *Pi* Reboot: `sudo reboot`
+9) SSH will disconnect, so reconnect once it's rebooted.
+10) *Pi* Pull the Docker image: `docker pull cjimti/iotwifi`
+11) *Pi* Create `wificfg.json` config file and edit credentials:
 
 ```
 {
