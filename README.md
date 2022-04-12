@@ -2,10 +2,9 @@
 
 1) Flash Raspberry Pi OS Lite 32-bit version using Pi Imager to SD card.
 2) Remember to set hostname, ssh access and locale settings in advanced.
-3) *Mac* Try to ssh in with the hostname configured in the Imager settings: `ssh pi@davespi.local`
-4) *Mac* If that fails, use network scanner to find the DHCP assigned ip address: `sudo nmap -sn 192.168.1.0/24 | grep -B 2 Raspberry`
-5) *Mac* Log in to Pi with on 192.168.X.X address: `ssh pi@192.168.X.X` 
-6) We will follow [these instructions](https://imti.co/iot-wifi/) to install docker and pull image, but we skip the `disable wpa_supplicant` step until the end (because it will disable wifi):
+3) *Mac* Try to ssh in with the hostname configured in the Imager settings: `ssh pi@XXX.local`
+4) *Mac* If that fails, use network scanner to find the DHCP assigned ip address (here XXX is the local address given to your Mac): `sudo nmap -sn 192.168.XXX.0/24 | grep -B 2 Raspberry`, then ssh to Pi on local address: `ssh pi@192.168.XXX.XXX` 
+6) We will approximately follow [these instructions](https://imti.co/iot-wifi/) to install docker and pull image (but we skip the `disable wpa_supplicant` step until the end, because it will disable wifi and lock you out of the Pi):
 7) *Pi* Install Docker: `curl -sSL https://get.docker.com | sh`
 8) *Pi* Update permissions: `sudo usermod -aG docker pi`
 9) *Pi* Reboot: `sudo reboot`
