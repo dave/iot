@@ -1,9 +1,14 @@
 # Setup
 
+Things you might need on your Mac:
+* Jq tool for displaying json on command line: `brew install jq`
+* Nmap network scanner `brew install nmap`
+* Make a shortcut to the airport tool so it's easier to use: `sudo ln -s /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport /usr/local/bin/airport`
+
 1) Flash Raspberry Pi OS Lite 32-bit version using Pi Imager to SD card.
 2) Remember to set hostname, ssh access and locale settings in advanced.
 3) *Mac* Try to ssh in with the hostname configured in the Imager settings: `ssh pi@XXX.local`
-4) *Mac* If that fails, use network scanner to find the DHCP assigned ip address (here XXX is the local address given to your Mac): `sudo nmap -sn 192.168.XXX.0/24 | grep -B 2 Raspberry`, then ssh to Pi on local address: `ssh pi@192.168.XXX.XXX` 
+4) *Mac* If that fails, scan local network for the Pi (here XXX is the local range given to your Mac): `sudo nmap -sn 192.168.XXX.0/24 | grep -B 2 Raspberry`, then ssh to Pi on local address: `ssh pi@192.168.XXX.XXX` 
 6) We will approximately follow [these instructions](https://imti.co/iot-wifi/) to install docker and pull image (but we skip the `disable wpa_supplicant` step until the end, because it will disable wifi and lock you out of the Pi):
 7) *Pi* Install Docker: `curl -sSL https://get.docker.com | sh`
 8) *Pi* Update permissions: `sudo usermod -aG docker pi`
@@ -44,12 +49,10 @@
 23) *Pi* `sudo pkill wpa_supplicant`
 24) SSH to Pi will freeze because the Pi's wifi will be disconnected.
 25) Reboot Pi
-26) *Mac* Make a shortcut to the airport tool so it's easier to use: `sudo ln -s /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport /usr/local/bin/airport`
-27) *Mac* Check you have the wifi network: `airport scan | grep SSID_IN_HERE`
-28) *Mac* Connect to the internal wifi newtork (you won't have internet).
-29) Now you can use the internal address of the Pi to configure it's external wifi:
-30) *Mac* Install `jq` tool for displaying json on command line if you don't have it: `brew install jq`
-31) *Mac* Get Pi to return status: `curl -w "\n" http://192.168.27.1:8080/status | jq`
-32) *Mac* Get Pi to scan wifi networks: `curl -w "\n" http://192.168.27.1:8080/scan | jq`
-33) *Mac* Get Pi to connect to a network: `curl -w "\n" -d '{"ssid":"SSID", "psk":"PASS"}' -H "Content-Type: application/json" -X POST http://192.168.27.1:8080/connect | jq`
-34) Internet should now be working on Mac
+26) *Mac* Check you have the wifi network: `airport scan | grep SSID_IN_HERE`
+27) *Mac* Connect to the internal wifi newtork (you won't have internet yet). Once you're connected to this network you'll be able to ssh to the Pi on `192.168.27.1`, but we shouldn't need to do that right now. 
+28) Now you can use the internal address of the Pi to configure it's external wifi:
+29) *Mac* Get Pi to return status: `curl -w "\n" http://192.168.27.1:8080/status | jq`
+30) *Mac* Get Pi to scan wifi networks: `curl -w "\n" http://192.168.27.1:8080/scan | jq`
+31) *Mac* Get Pi to connect to a network: `curl -w "\n" -d '{"ssid":"SSID_IN_HERE", "psk":"PASSWORD_IN_HERE"}' -H "Content-Type: application/json" -X POST http://192.168.27.1:8080/connect | jq`
+32) Internet should now be working on Mac
