@@ -35,11 +35,30 @@ of the Pi):
 7) *Pi* `sudo apt upgrade -y`
 8) *Pi* Install Docker: `curl -sSL https://get.docker.com | sh`
 9) *Pi* Update permissions: `sudo usermod -aG docker pi`
-10) *Pi* Reboot: `sudo reboot`
-11) SSH will disconnect, so reconnect once it's rebooted.
-12) *Pi* Pull the Docker image: `docker pull cjimti/iotwifi`
-13) *Pi* Create `wificfg.json` config file and edit credentials:
-
+10) Install `docker-compose`:
+11) *Pi* `sudo apt-get install libffi-dev libssl-dev`
+12) *Pi* `sudo apt install python3-dev`
+13) *Pi* `sudo apt-get install -y python3 python3-pip`
+14) *Pi* `sudo pip3 install docker-compose`
+15) *Pi* `sudo systemctl enable docker`
+16) *Pi* Reboot: `sudo reboot`
+17) SSH will disconnect, so reconnect once it's rebooted.
+18) *Pi* Create `docker-compose.yml`:
+```
+version: '3'
+services:
+  wifi:
+    container_name: wifi
+    image: "cjimti/iotwifi"
+    volumes:
+      - /home/pi/config/wifi:/cfg
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+```
+19) *Pi* `mkdir config && mkdir config/wifi`
+20) *Pi* Create `config/wifi/wificfg.json` config file and edit credentials:
 ```
 {
     "dnsmasq_cfg": {
@@ -58,8 +77,7 @@ of the Pi):
     }
 }
 ```
-
-12) *Pi* Start Docker container: `docker run --restart=unless-stopped -d --privileged --net host -v $(pwd)/wificfg.json:/cfg/wificfg.json cjimti/iotwifi`
+12) *Pi* Start docker: `docker-compose up -d`
 13) Pi will freeze and stop pinging for a few seconds here, but give it time and the SSH connection will start responding again.
 14) Enable forwarding:
 15) *Pi* `sudo sysctl net.ipv4.ip_forward=1`

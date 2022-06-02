@@ -1,4 +1,4 @@
-module iot
+module github.com/dave/iot/mqtt
 
 go 1.18
 

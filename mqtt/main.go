@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	mqtt "github.com/mochi-co/mqtt/server"
 	"github.com/mochi-co/mqtt/server/events"
@@ -55,11 +54,15 @@ func main() {
 	// Add OnMessage Event Hook
 	server.Events.OnMessage = func(cl events.Client, pk events.Packet) (pkx events.Packet, err error) {
 		pkx = pk
-		if string(pk.Payload) == "hello" {
-			pkx.Payload = []byte("hello world")
-			fmt.Printf("< OnMessage modified message from client %s: %s\n", cl.ID, string(pkx.Payload))
-		} else {
-			fmt.Printf("< OnMessage received message from client %s: %s\n", cl.ID, string(pkx.Payload))
+		//if string(pk.Payload) == "hello" {
+		//	pkx.Payload = []byte("hello world")
+		//	fmt.Printf("< OnMessage modified message from client %s: %s\n", cl.ID, string(pkx.Payload))
+		//} else {
+		//	fmt.Printf("< OnMessage received message from client %s: %s: %s\n", cl.ID, pkx.TopicName, string(pkx.Payload))
+		//}
+
+		if pkx.TopicName == "accel_x" {
+			fmt.Println(string(pkx.Payload))
 		}
 
 		// Example of using AllowClients to selectively deliver/drop messages.
@@ -75,10 +78,11 @@ func main() {
 	// `server.Publish` method. Subscribe to `direct/publish` using your
 	// MQTT client to see the messages.
 	go func() {
-		for range time.Tick(time.Second * 10) {
-			server.Publish("direct/publish", []byte("scheduled message"), false)
-			fmt.Println("> issued direct message to direct/publish")
-		}
+		//for range time.Tick(time.Second * 10) {
+		//server.Publish("light_on", []byte("1"), false)
+		//time.Sleep(time.Second)
+		//server.Publish("light_off", []byte("1"), false)
+		//}
 	}()
 
 	fmt.Println("  Started!  ")
