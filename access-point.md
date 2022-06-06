@@ -1,3 +1,5 @@
+# IGNORE THIS!
+
 # Setup
 
 I've been configuring an IOT network, which has a Raspberry Pi as a server, and several iot

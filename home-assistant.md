@@ -1,3 +1,5 @@
+# IGNORE THIS!
+
 # Setup
 
 `docker run -d --name homeassistant --privileged --restart=unless-stopped -e TZ=Europe/London -v /home/pi:/config --network=host ghcr.io/home-assistant/home-assistant:stable`

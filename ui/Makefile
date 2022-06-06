@@ -10,14 +10,4 @@ build:
 run:
 	sudo xinit "./ui"
 
-screensaver:
-	xset -dpms -display :0.0
-	xset s off -display :0.0
-	xset s noblank -display :0.0
-
-query:
-	xset q -display :0.0
-
-#-geometry=1920x1080+0+0
-
 all: build run

@@ -2,7 +2,7 @@
 
 ### Getting `ui` (a Gio app) running on a Raspberry Pi Zero 2 (with Lite OS version) with a BOOX Mira e-ink display.
 
-Comment this line out in config.txt to get BOOX Mira display working:
+Comment this line out in Respberry Pi `config.txt` to get BOOX Mira display working:
 ```
 dtoverlay=vc4-kms-v3d
 ```
