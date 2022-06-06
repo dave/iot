@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"log"
 	"os"
+	"time"
 
 	"gioui.org/app"
 	"gioui.org/f32"
@@ -17,7 +18,9 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/text"
+	"gioui.org/unit"
 	"gioui.org/widget/material"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 var grid = &Grid{
@@ -28,6 +31,9 @@ var grid = &Grid{
 				Init: func(b *Button, th *material.Theme) {
 					b.count = 1
 					b.th = th
+					b.changed = func(value int) {
+						MqttClient.Publish("dimmer1", 0, false, fmt.Sprint(value))
+					}
 				},
 			},
 			&GridCell[*Button]{
@@ -35,6 +41,9 @@ var grid = &Grid{
 				Init: func(b *Button, th *material.Theme) {
 					b.count = 2
 					b.th = th
+					b.changed = func(value int) {
+						MqttClient.Publish("dimmer2", 0, false, fmt.Sprint(value))
+					}
 				},
 			},
 		},
@@ -44,15 +53,40 @@ var grid = &Grid{
 				Init: func(b *Button, th *material.Theme) {
 					b.count = 4
 					b.th = th
+					b.changed = func(value int) {
+						MqttClient.Publish("dimmer3", 0, false, fmt.Sprint(value))
+					}
 				},
 			},
 		},
 	},
 }
 
+var defaultPublishHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
+	fmt.Printf("TOPIC: %s\n", msg.Topic())
+	fmt.Printf("MSG: %s\n", msg.Payload())
+}
+
+var MqttClient mqtt.Client
+
 func main() {
+
+	mqtt.DEBUG = log.New(os.Stdout, "", 0)
+	mqtt.ERROR = log.New(os.Stdout, "", 0)
+	opts := mqtt.NewClientOptions().AddBroker("tcp://pi1.lan:1883").SetClientID("ui")
+
+	opts.SetKeepAlive(60 * time.Second)
+	// Set the message callback handler
+	opts.SetDefaultPublishHandler(defaultPublishHandler)
+	opts.SetPingTimeout(1 * time.Second)
+
+	MqttClient = mqtt.NewClient(opts)
+	if token := MqttClient.Connect(); token.Wait() && token.Error() != nil {
+		log.Fatal(token.Error())
+	}
+
 	go func() {
-		w := app.NewWindow()
+		w := app.NewWindow(app.Size(unit.Dp(1920), unit.Dp(1080)))
 		err := run(w)
 		if err != nil {
 			log.Fatal(err)
@@ -67,6 +101,7 @@ func run(w *app.Window) error {
 	grid.Init(th)
 
 	var ops op.Ops
+
 	for {
 		e := <-w.Events()
 		switch e := e.(type) {
@@ -147,10 +182,11 @@ func (g *Grid) Layout(gtx layout.Context) layout.Dimensions {
 }
 
 type Button struct {
-	value float32
-	count int
-	th    *material.Theme
-	drag  bool
+	value   float32
+	count   int
+	th      *material.Theme
+	drag    bool
+	changed func(value int)
 }
 
 func (b *Button) Layout(gtx layout.Context) layout.Dimensions {
@@ -170,6 +206,7 @@ func (b *Button) Layout(gtx layout.Context) layout.Dimensions {
 
 		switch e.Type {
 		case pointer.Drag, pointer.Press:
+			prevCount := b.count
 			b.drag = true
 			positionOfset := e.Position.Y - offsetY
 			b.value = 1 - (positionOfset / buttonHeight)
@@ -179,7 +216,11 @@ func (b *Button) Layout(gtx layout.Context) layout.Dimensions {
 			case b.value < 0.0:
 				b.value = 0.0
 			}
-			b.count = int(b.value * 100)
+			b.count = int(b.value * 100000)
+			if prevCount != b.count {
+				// only call changed if count has actually changed
+				b.changed(b.count)
+			}
 			b.drag = false
 		case pointer.Release:
 			b.drag = false

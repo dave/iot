@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"os"
@@ -16,10 +17,18 @@ import (
 func main() {
 	sigs := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
+	keys := make(chan string, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
 		done <- true
+	}()
+	go func() {
+		reader := bufio.NewReader(os.Stdin)
+		for {
+			s, _ := reader.ReadString('\n')
+			keys <- s
+		}
 	}()
 
 	fmt.Println("Mochi MQTT Server initializing...")
@@ -54,6 +63,10 @@ func main() {
 	// Add OnMessage Event Hook
 	server.Events.OnMessage = func(cl events.Client, pk events.Packet) (pkx events.Packet, err error) {
 		pkx = pk
+
+		if pk.TopicName == "dimmer1" {
+			fmt.Println(pk.TopicName, string(pk.Payload))
+		}
 		//if string(pk.Payload) == "hello" {
 		//	pkx.Payload = []byte("hello world")
 		//	fmt.Printf("< OnMessage modified message from client %s: %s\n", cl.ID, string(pkx.Payload))
@@ -73,6 +86,16 @@ func main() {
 
 		return pkx, nil
 	}
+
+	go func() {
+		for {
+			<-keys
+			for i := 0; i < 1000; i++ {
+				server.Publish("dimmer1", []byte("5000"), false)
+				//time.Sleep(time.Millisecond * 10)
+			}
+		}
+	}()
 
 	// Demonstration of directly publishing messages to a topic via the
 	// `server.Publish` method. Subscribe to `direct/publish` using your

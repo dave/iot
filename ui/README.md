@@ -34,16 +34,15 @@ Required for starting Gio app without desktop environment:
 sudo apt install xinit
 ```
 
+Disable screensaver:
+```
+sudo make init
+```
+
 To start app:
 ```
-go build github.com/dave/iot/ui && sudo xinit ./ui $* -- :1
+go build github.com/dave/iot/ui && sudo xinit ./ui
 ```
 
 
-Notes (not needed): 
-
-Maybe: `https://snapcraft.io/install/wayland/raspbian`
-Maybe: `https://www.paulligocki.com/add-gui-to-raspberry-pi-os-lite/`
-Maybe: `https://forums.raspberrypi.com/viewtopic.php?t=265090`
-THIS: `https://linuxconfig.org/how-to-run-x-applications-without-a-desktop-or-a-wm`
 

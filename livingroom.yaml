@@ -87,23 +87,3 @@ sensor:
 #      name: "${name} Temperature"
 
 
-
-mqtt:
-  broker: 192.168.8.10
-  on_message:
-    - topic: light_on
-      qos: 0
-      then:
-        light.turn_on:
-          id: status_led
-          brightness: 100%
-          red: 50%
-          green: 0%
-          blue: 100%
-          transition_length: 0s
-    - topic: light_off
-      qos: 0
-      then:
-        light.turn_off:
-          id: status_led
-          transition_length: 0s
