@@ -10,6 +10,7 @@ esp32:
   framework:
     type: arduino
 
+# Status LED:
 #light:
 #  - name: ${name} Light
 #    platform: fastled_clockless
@@ -19,20 +20,11 @@ esp32:
 #    rgb_order: GRB
 #    id: status_led
 
-#mqtt:
-#  broker: pi1.lan
-#  on_message:
-#    topic: dimmer1
-#    then:
-#      - light.toggle:
-#          id: status_led
-#          transition_length: 0s
-
 output:
   - platform: ledc
     pin: GPIO22
     id: gpio_22
-    frequency: 1220Hz
+    frequency: 10kHz
 
 light:
   - platform: monochromatic
@@ -40,18 +32,53 @@ light:
     name: ${friendly_name} Light
     id: dimmer
 
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: 39
+      inverted: true
+    name: ${friendly_name} Button
+    on_press:
+      if:
+        condition:
+          - light.is_on: dimmer
+        then:
+          - light.turn_off:
+              id: dimmer
+              transition_length: 0s
+          - mqtt.publish_json:
+              topic: ${device_name}/value
+              payload: |-
+                root["source"] = "${device_name}";
+                root["value"] = 0.0;
+        else:
+          - light.turn_on:
+              id: dimmer
+              brightness: 1.0
+              transition_length: 0s
+          - mqtt.publish_json:
+              topic: ${device_name}/value
+              payload: |-
+                root["source"] = "${device_name}";
+                root["value"] = 1.0;
+
 mqtt:
   broker: pi1.lan
-  on_message:
-    topic: dimmer1
+  discovery: false
+  log_topic:
+    topic: ${device_name}/log
+    level: NONE
+  keepalive: 5s
+  on_json_message:
+    topic: ${device_name}/value
     then:
       - light.turn_on:
           id: dimmer
-          brightness: !lambda "return atoi(x.c_str()) / 100000.0;"
+          brightness: !lambda 'return x["value"];'
           transition_length: 0s
 
 logger:
-  #level: NONE
+  level: NONE
 
 ota:
   password: ""
@@ -63,20 +90,9 @@ wifi:
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "${friendly_name} Fallback Hotspot"
-    password: "hogxyvZGcsFa"
+    password: !secret wifi_password
 
 captive_portal:
 
 
 
-binary_sensor:
-  - platform: gpio
-    pin:
-      number: 39
-      inverted: true
-    name: ${friendly_name} Button
-    on_press:
-      then:
-        - light.toggle:
-            id: dimmer
-            transition_length: 0s

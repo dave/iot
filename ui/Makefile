@@ -8,6 +8,6 @@ build:
 	go build github.com/dave/iot/ui
 
 run:
-	sudo xinit "./ui"
+	sudo xinit ./ui -id=ui1 --
 
 all: build run

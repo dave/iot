@@ -1,11 +1,14 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
 	"fmt"
 	"image"
 	"image/color"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"gioui.org/app"
@@ -23,26 +26,45 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
+const MQTT_DELAY = time.Millisecond * 250
+
+type ValueMessage struct {
+	Value  float32 `json:"value"`
+	Source string  `json:"source"`
+}
+
 var grid = &Grid{
 	Cells: [][]GridCellInterface{
 		{
 			&GridCell[*Button]{
 				Contents: &Button{},
-				Init: func(b *Button, th *material.Theme) {
-					b.count = 1
-					b.th = th
-					b.changed = func(value int) {
-						MqttClient.Publish("dimmer1", 0, false, fmt.Sprint(value))
+				Init: func(b *Button, ui *Ui) {
+					b.th = ui.theme
+					b.changed = func(value float32) {
+						ui.Publish("dimmer1/value", ValueMessage{Value: value, Source: "button"})
 					}
+					ui.mqtt.Subscribe("dimmer1/value", 0, func(client mqtt.Client, msg mqtt.Message) {
+						var v ValueMessage
+						if err := json.Unmarshal(msg.Payload(), &v); err != nil {
+							fmt.Println(err)
+							return
+						}
+						if v.Source == ui.clinetId {
+							// don't react to our own messages
+							return
+						}
+						b.value = v.Value
+						b.count = int(b.value * 1024)
+						ui.window.Invalidate()
+					})
 				},
 			},
 			&GridCell[*Button]{
 				Contents: &Button{},
-				Init: func(b *Button, th *material.Theme) {
-					b.count = 2
-					b.th = th
-					b.changed = func(value int) {
-						MqttClient.Publish("dimmer2", 0, false, fmt.Sprint(value))
+				Init: func(b *Button, ui *Ui) {
+					b.th = ui.theme
+					b.changed = func(value float32) {
+						//MqttClient.Publish("dimmer2/value", 0, false, fmt.Sprint(value))
 					}
 				},
 			},
@@ -50,11 +72,10 @@ var grid = &Grid{
 		{
 			&GridCell[*Button]{
 				Contents: &Button{},
-				Init: func(b *Button, th *material.Theme) {
-					b.count = 4
-					b.th = th
-					b.changed = func(value int) {
-						MqttClient.Publish("dimmer3", 0, false, fmt.Sprint(value))
+				Init: func(b *Button, ui *Ui) {
+					b.th = ui.theme
+					b.changed = func(value float32) {
+						//MqttClient.Publish("dimmer3/value", 0, false, fmt.Sprint(value))
 					}
 				},
 			},
@@ -67,28 +88,85 @@ var defaultPublishHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqt
 	fmt.Printf("MSG: %s\n", msg.Payload())
 }
 
-var MqttClient mqtt.Client
+type Ui struct {
+	theme     *material.Theme
+	window    *app.Window
+	clinetId  string
+	mqtt      mqtt.Client
+	pubs      map[string]any
+	pubsMutex *sync.Mutex
+}
+
+func (ui *Ui) Publish(topic string, message any) {
+	ui.pubsMutex.Lock()
+	defer ui.pubsMutex.Unlock()
+
+	_, found := ui.pubs[topic]
+	if found {
+		// we published recently to this topic, don't publish right now, but store the message
+		ui.pubs[topic] = message
+		return
+	}
+
+	// publish the message immediately
+	b, err := json.Marshal(message)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	ui.mqtt.Publish(topic, 0, true, b)
+	ui.pubs[topic] = nil
+	go func() {
+		// start a goroutine to wait for MQTT_DELAY before publishing the next message
+		time.Sleep(MQTT_DELAY)
+		ui.pubsMutex.Lock()
+		defer ui.pubsMutex.Unlock()
+		if message, found := ui.pubs[topic]; found {
+			if message == nil {
+				delete(ui.pubs, topic)
+				return
+			}
+			b, err := json.Marshal(message)
+			if err != nil {
+				delete(ui.pubs, topic)
+				fmt.Println(err)
+				return
+			}
+			ui.mqtt.Publish(topic, 0, true, b)
+			delete(ui.pubs, topic)
+		}
+	}()
+}
 
 func main() {
 
+	ui := &Ui{
+		pubs:      make(map[string]any),
+		pubsMutex: new(sync.Mutex),
+	}
+
+	clientIdFlag := flag.String("id", "", "The client id to use (each client must use a unique id)")
+	flag.Parse()
+	clientId := *clientIdFlag
+	if clientId == "" {
+		log.Fatal("client id must be set")
+	}
+	ui.clinetId = clientId
+
 	mqtt.DEBUG = log.New(os.Stdout, "", 0)
 	mqtt.ERROR = log.New(os.Stdout, "", 0)
-	opts := mqtt.NewClientOptions().AddBroker("tcp://pi1.lan:1883").SetClientID("ui")
-
+	opts := mqtt.NewClientOptions().AddBroker("tcp://pi1.lan:1883").SetClientID(clientId)
 	opts.SetKeepAlive(60 * time.Second)
-	// Set the message callback handler
 	opts.SetDefaultPublishHandler(defaultPublishHandler)
 	opts.SetPingTimeout(1 * time.Second)
-
-	MqttClient = mqtt.NewClient(opts)
-	if token := MqttClient.Connect(); token.Wait() && token.Error() != nil {
+	ui.mqtt = mqtt.NewClient(opts)
+	if token := ui.mqtt.Connect(); token.Wait() && token.Error() != nil {
 		log.Fatal(token.Error())
 	}
 
 	go func() {
-		w := app.NewWindow(app.Size(unit.Dp(1920), unit.Dp(1080)))
-		err := run(w)
-		if err != nil {
+		ui.window = app.NewWindow(app.Size(unit.Dp(1920), unit.Dp(1080)))
+		if err := ui.run(); err != nil {
 			log.Fatal(err)
 		}
 		os.Exit(0)
@@ -96,14 +174,14 @@ func main() {
 	app.Main()
 }
 
-func run(w *app.Window) error {
-	th := material.NewTheme(gofont.Collection())
-	grid.Init(th)
+func (ui *Ui) run() error {
+	ui.theme = material.NewTheme(gofont.Collection())
+	grid.Init(ui)
 
 	var ops op.Ops
 
 	for {
-		e := <-w.Events()
+		e := <-ui.window.Events()
 		switch e := e.(type) {
 		case system.DestroyEvent:
 			return e.Err
@@ -121,14 +199,14 @@ type Grid struct {
 	Cells         [][]GridCellInterface
 }
 
-func (g *Grid) Init(th *material.Theme) {
+func (g *Grid) Init(ui *Ui) {
 	var columns int
 	for _, row := range g.Cells {
 		if len(row) > columns {
 			columns = len(row)
 		}
 		for _, cell := range row {
-			cell.init(th)
+			cell.init(ui)
 		}
 	}
 	g.Rows = len(g.Cells)
@@ -137,11 +215,11 @@ func (g *Grid) Init(th *material.Theme) {
 
 type GridCell[C Widget] struct {
 	Contents C
-	Init     func(C, *material.Theme)
+	Init     func(C, *Ui)
 }
 
-func (c *GridCell[C]) init(th *material.Theme) {
-	c.Init(c.Contents, th)
+func (c *GridCell[C]) init(ui *Ui) {
+	c.Init(c.Contents, ui)
 }
 
 func (c *GridCell[C]) Layout(gtx layout.Context) layout.Dimensions {
@@ -153,7 +231,7 @@ type Widget interface {
 }
 
 type GridCellInterface interface {
-	init(*material.Theme)
+	init(*Ui)
 	Layout(gtx layout.Context) layout.Dimensions
 }
 
@@ -186,7 +264,7 @@ type Button struct {
 	count   int
 	th      *material.Theme
 	drag    bool
-	changed func(value int)
+	changed func(value float32)
 }
 
 func (b *Button) Layout(gtx layout.Context) layout.Dimensions {
@@ -209,17 +287,17 @@ func (b *Button) Layout(gtx layout.Context) layout.Dimensions {
 			prevCount := b.count
 			b.drag = true
 			positionOfset := e.Position.Y - offsetY
-			b.value = 1 - (positionOfset / buttonHeight)
+			b.value = 1.0 - (positionOfset / buttonHeight)
 			switch {
 			case b.value > 1.0:
 				b.value = 1.0
 			case b.value < 0.0:
 				b.value = 0.0
 			}
-			b.count = int(b.value * 100000)
+			b.count = int(b.value * 1024)
 			if prevCount != b.count {
 				// only call changed if count has actually changed
-				b.changed(b.count)
+				b.changed(b.value)
 			}
 			b.drag = false
 		case pointer.Release:
@@ -260,7 +338,7 @@ func (b *Button) Layout(gtx layout.Context) layout.Dimensions {
 		offset := op.Offset(f32.Pt(offsetX, offsetY)).Push(gtx.Ops)
 		gtx := gtx
 		gtx.Constraints = layout.Exact(image.Pt(int(buttonWidth), int(buttonHeight)))
-		title := material.Body1(b.th, fmt.Sprintf("Count: %d", b.count))
+		title := material.Body1(b.th, fmt.Sprintf("Value: %d%%", int(b.value*100.0)))
 		title.Color = White(1)
 		title.Alignment = text.Middle
 		title.Layout(gtx)
@@ -270,12 +348,10 @@ func (b *Button) Layout(gtx layout.Context) layout.Dimensions {
 	return layout.Dimensions{Size: gtx.Constraints.Max}
 }
 
-//
-//func FillWithLabel(gtx layout.Context, th *material.Theme, text string, backgroundColor color.NRGBA) layout.Dimensions {
-//	ColorBox(gtx, gtx.Constraints.Max, backgroundColor)
-//	return layout.Center.Layout(gtx, material.H3(th, text).Layout)
-//}
-//
+//	func FillWithLabel(gtx layout.Context, th *material.Theme, text string, backgroundColor color.NRGBA) layout.Dimensions {
+//		ColorBox(gtx, gtx.Constraints.Max, backgroundColor)
+//		return layout.Center.Layout(gtx, material.H3(th, text).Layout)
+//	}
 var (
 	background = color.NRGBA{R: 0xC0, G: 0xC0, B: 0xC0, A: 0xFF}
 	red        = color.NRGBA{R: 0xC0, G: 0x40, B: 0x40, A: 0xFF}
