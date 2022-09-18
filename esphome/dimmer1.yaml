@@ -49,7 +49,7 @@ binary_sensor:
           - mqtt.publish_json:
               topic: ${device_name}/value
               payload: |-
-                root["source"] = "${device_name}";
+                root["client"] = "${device_name}";
                 root["value"] = 0.0;
         else:
           - light.turn_on:
@@ -59,7 +59,7 @@ binary_sensor:
           - mqtt.publish_json:
               topic: ${device_name}/value
               payload: |-
-                root["source"] = "${device_name}";
+                root["client"] = "${device_name}";
                 root["value"] = 1.0;
 
 mqtt:
