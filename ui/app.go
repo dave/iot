@@ -12,7 +12,7 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/widget/material"
-	"github.com/dave/iot/ui/button"
+	"github.com/dave/iot/ui/tool"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
@@ -44,7 +44,7 @@ func (a *App) run() error {
 	}
 }
 
-func (a *App) handle(b *button.Button) {
+func (a *App) handle(b *tool.Slider) {
 	b.Theme = a.theme
 	b.Changed = func(value float32) {
 		a.publish(fmt.Sprintf("%s/value", b.Id), ValueMessage{Value: value, Client: a.clientId})

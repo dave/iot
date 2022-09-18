@@ -1,4 +1,4 @@
-package button
+package tool
 
 import (
 	"fmt"
@@ -15,8 +15,9 @@ import (
 	"github.com/dave/iot/ui/basic"
 )
 
-type Button struct {
+type Slider struct {
 	Theme   *material.Theme
+	Name    string
 	Id      string
 	Value   float32
 	Changed func(value float32)
@@ -24,7 +25,7 @@ type Button struct {
 	drag bool
 }
 
-func (b *Button) Layout(gtx layout.Context) layout.Dimensions {
+func (s *Slider) Layout(gtx layout.Context) layout.Dimensions {
 
 	cellWidth := float32(gtx.Constraints.Max.X)
 	cellHeight := float32(gtx.Constraints.Max.Y)
@@ -33,7 +34,7 @@ func (b *Button) Layout(gtx layout.Context) layout.Dimensions {
 	offsetX := (cellWidth - buttonWidth) * 0.5
 	offsetY := (cellHeight - buttonHeight) * 0.5
 
-	for _, ev := range gtx.Events(b) {
+	for _, ev := range gtx.Events(s) {
 		e, ok := ev.(pointer.Event)
 		if !ok {
 			continue
@@ -41,23 +42,23 @@ func (b *Button) Layout(gtx layout.Context) layout.Dimensions {
 
 		switch e.Type {
 		case pointer.Drag, pointer.Press:
-			previous := b.Value
-			b.drag = true
+			previous := s.Value
+			s.drag = true
 			positionOfset := e.Position.Y - offsetY
-			b.Value = 1.0 - (positionOfset / buttonHeight)
+			s.Value = 1.0 - (positionOfset / buttonHeight)
 			switch {
-			case b.Value > 1.0:
-				b.Value = 1.0
-			case b.Value < 0.0:
-				b.Value = 0.0
+			case s.Value > 1.0:
+				s.Value = 1.0
+			case s.Value < 0.0:
+				s.Value = 0.0
 			}
-			if int(b.Value*100) != int(previous*100) {
+			if int(s.Value*100) != int(previous*100) {
 				// only call changed if count has actually changed by more than 1%
-				b.Changed(b.Value)
+				s.Changed(s.Value)
 			}
-			b.drag = false
+			s.drag = false
 		case pointer.Release:
-			b.drag = false
+			s.drag = false
 		}
 	}
 
@@ -69,7 +70,7 @@ func (b *Button) Layout(gtx layout.Context) layout.Dimensions {
 	)
 	area := clip.Rect(inner).Push(gtx.Ops)
 	pointer.InputOp{
-		Tag:   b,
+		Tag:   s,
 		Types: pointer.Press | pointer.Drag | pointer.Release,
 	}.Add(gtx.Ops)
 	area.Pop()
@@ -81,7 +82,7 @@ func (b *Button) Layout(gtx layout.Context) layout.Dimensions {
 
 	innerShaded := image.Rect(
 		int(offsetX),
-		int(offsetY+buttonHeight*(1-b.Value)),
+		int(offsetY+buttonHeight*(1-s.Value)),
 		int(offsetX+buttonWidth),
 		int(offsetY+buttonHeight),
 	)
@@ -94,7 +95,7 @@ func (b *Button) Layout(gtx layout.Context) layout.Dimensions {
 		offset := op.Offset(f32.Pt(offsetX, offsetY)).Push(gtx.Ops)
 		gtx := gtx
 		gtx.Constraints = layout.Exact(image.Pt(int(buttonWidth), int(buttonHeight)))
-		title := material.Body1(b.Theme, fmt.Sprintf("Value: %d%%", int(b.Value*100.0)))
+		title := material.Body1(s.Theme, fmt.Sprintf("%s: %d%%", s.Name, int(s.Value*100.0)))
 		title.Color = basic.White(1)
 		title.Alignment = text.Middle
 		title.Layout(gtx)

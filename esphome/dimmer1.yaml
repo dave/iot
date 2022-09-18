@@ -78,7 +78,7 @@ mqtt:
           transition_length: 0s
 
 logger:
-  level: NONE
+  level: DEBUG
 
 ota:
   password: ""
